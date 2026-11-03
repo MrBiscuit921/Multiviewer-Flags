@@ -1,0 +1,99 @@
+<head>
+  <title>Multiviewer Flags</title>
+  <meta description="F1 Multiviewer Flag Display" />
+  <meta publisher="mrbiscuit921" />
+
+  <meta
+    property="flashing"
+    label="Flashing Enabled"
+    type="boolean"
+    default="0" />
+  <meta
+    property="sc_colour"
+    label="Safety Car Colour"
+    type="color"
+    default="#ffa500"
+    min="0"
+    max="360" />
+  <meta
+    property="speed"
+    label="Flashing Speed"
+    type="number"
+    min="1"
+    max="10"
+    default="3" />
+  <meta
+    property="default_colour"
+    label="Default Colour"
+    type="color"
+    default="#000000"
+    min="0"
+    max="360" />
+</head>
+
+<body style="margin: 0; padding: 0">
+  <canvas id="exCanvas" width="320" height="200"></canvas>
+</body>
+
+<script>
+  var c = document.getElementById("exCanvas");
+  var ctx = c.getContext("2d");
+  var width = 320;
+  var height = 200;
+  var frames = 0;
+
+  var activeEvent = ""; // Variable to store most recent event
+
+  function onCanvasApiEvent(data) {
+    if (data && data.sender == "F1_Multiviewer") {
+      activeEvent = data.event;
+    }
+  }
+
+  function update() {
+    frames++;
+    if (activeEvent == "allClear" || activeEvent == "sectorClear") {
+      ctx.fillStyle = "#00ff00";
+      ctx.fillRect(0, 0, width, height);
+    } else if (activeEvent == "yellowFlag") {
+      ctx.fillStyle = "#ffff00";
+      ctx.fillRect(0, 0, width, height);
+    } else if (
+      activeEvent == "safetyCarDeployed" ||
+      activeEvent == "virtualSafetyCarDeployed" ||
+      activeEvent == "virtualSafetyCarEnding"
+    ) {
+      if (flashing) {
+        // yellow/black
+        if ((frames * speed) % 50 < 25) {
+          ctx.fillStyle = "#ffff00";
+          ctx.fillRect(0, 0, width, height);
+        } else {
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(0, 0, width, height);
+        }
+      } else {
+        ctx.fillStyle = sc_colour;
+        ctx.fillRect(0, 0, width, height);
+      }
+    } else if (activeEvent == "redFlag") {
+      ctx.fillStyle = "#ff0000";
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.fillStyle = default_colour;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    window.requestAnimationFrame(update);
+  }
+  window.addEventListener("message", (e) => {
+    var parsedData = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+
+    if (parsedData) {
+      // Feed whatever data arrives directly into the state setter
+      onCanvasApiEvent(parsedData.value || parsedData);
+    }
+  });
+
+  window.requestAnimationFrame(update);
+</script>
