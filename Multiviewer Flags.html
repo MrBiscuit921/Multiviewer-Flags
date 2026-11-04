@@ -21,7 +21,7 @@
     type="number"
     min="1"
     max="10"
-    default="3" />
+    default="1" />
   <meta
     property="default_colour"
     label="Default Colour"
@@ -42,29 +42,51 @@
   var height = 200;
   var frames = 0;
 
-  var activeEvent = ""; // Variable to store most recent event
+  var activeFlagEvent = "";
+  var activeSectorEvent = [];
+
+  // Only these events are allowed to change the flag colour
+  var FLAG_EVENTS = [
+    "allClear",
+    "sectorClear",
+    "yellowFlag",
+    "safetyCarDeployed",
+    "virtualSafetyCarDeployed",
+    "virtualSafetyCarEnding",
+    "redFlag",
+  ];
 
   function onCanvasApiEvent(data) {
-    if (data && data.sender == "F1_Multiviewer") {
-      activeEvent = data.event;
+    if (
+      !data ||
+      data.sender != "F1_Multiviewer" ||
+      typeof data.event != "string"
+    )
+      return;
+
+    if (data.event.indexOf("sector_") === 0) {
+      activeSectorEvent = data.event.slice(7).split("_");
+    } else if (FLAG_EVENTS.indexOf(data.event) !== -1) {
+      activeFlagEvent = data.event;
     }
   }
 
   function update() {
     frames++;
-    if (activeEvent == "allClear" || activeEvent == "sectorClear") {
+
+    // FLAGS
+    if (activeFlagEvent == "allClear" || activeFlagEvent == "sectorClear") {
       ctx.fillStyle = "#00ff00";
       ctx.fillRect(0, 0, width, height);
-    } else if (activeEvent == "yellowFlag") {
+    } else if (activeFlagEvent == "yellowFlag") {
       ctx.fillStyle = "#ffff00";
       ctx.fillRect(0, 0, width, height);
     } else if (
-      activeEvent == "safetyCarDeployed" ||
-      activeEvent == "virtualSafetyCarDeployed" ||
-      activeEvent == "virtualSafetyCarEnding"
+      activeFlagEvent == "safetyCarDeployed" ||
+      activeFlagEvent == "virtualSafetyCarDeployed" ||
+      activeFlagEvent == "virtualSafetyCarEnding"
     ) {
       if (flashing) {
-        // yellow/black
         if ((frames * speed) % 50 < 25) {
           ctx.fillStyle = "#ffff00";
           ctx.fillRect(0, 0, width, height);
@@ -76,7 +98,7 @@
         ctx.fillStyle = sc_colour;
         ctx.fillRect(0, 0, width, height);
       }
-    } else if (activeEvent == "redFlag") {
+    } else if (activeFlagEvent == "redFlag") {
       ctx.fillStyle = "#ff0000";
       ctx.fillRect(0, 0, width, height);
     } else {
@@ -84,13 +106,27 @@
       ctx.fillRect(0, 0, width, height);
     }
 
+    // SECTORS
+    for (let i = 0; i < 3; i++) {
+      if (activeSectorEvent[i] == "Fastest") {
+        ctx.fillStyle = "#A020F0";
+        ctx.fillRect(0 + i * (width / 3), 160, width / 3, height / 5);
+      } else if (activeSectorEvent[i] == "Personal") {
+        ctx.fillStyle = "#00E600";
+        ctx.fillRect(0 + i * (width / 3), 160, width / 3, height / 5);
+      } else if (activeSectorEvent[i] == "None") {
+        ctx.fillStyle = "#FFD700";
+        ctx.fillRect(0 + i * (width / 3), 160, width / 3, height / 5);
+      }
+    }
+
     window.requestAnimationFrame(update);
   }
+
   window.addEventListener("message", (e) => {
     var parsedData = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
 
     if (parsedData) {
-      // Feed whatever data arrives directly into the state setter
       onCanvasApiEvent(parsedData.value || parsedData);
     }
   });

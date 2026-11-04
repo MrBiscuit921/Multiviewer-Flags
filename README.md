@@ -2,9 +2,9 @@
 
 F1 MultiViewer flags display on LED devices via SignalRGB.
 
-Your keyboard, fans, strips and other RGB gear change colour to match the current F1 track status (green, yellow, red, safety car and virtual safety car), using live data from [MultiViewer for F1](https://multiviewer.app/).
+Your keyboard, fans, strips and other RGB gear change colour to match the current F1 track status (green, yellow, red, safety car and virtual safety car), using live data from [MultiViewer for F1](https://multiviewer.app/). It can also show a driver's three sector times as coloured bars along the bottom of the canvas.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
 
 ## Table of Contents
 
@@ -14,6 +14,7 @@ Your keyboard, fans, strips and other RGB gear change colour to match the curren
 - [Installation](#installation)
 - [Usage](#usage)
 - [Settings](#settings)
+- [Sector display](#sector-display)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
@@ -22,6 +23,8 @@ Your keyboard, fans, strips and other RGB gear change colour to match the curren
 - Live flag colours: green (all clear), yellow, red, safety car and virtual safety car
 - Safety car and VSC can flash yellow/black, or show a solid colour of your choice
 - Adjustable flashing speed and idle colour
+- Sector display: a driver's three sector times shown as purple, green or yellow bars
+- Choose which driver to follow
 - Works with any device SignalRGB supports
 
 | Track status | Colour |
@@ -39,9 +42,9 @@ Your keyboard, fans, strips and other RGB gear change colour to match the curren
 MultiViewer  ->  multiviewer.py  ->  SignalRGB effect  ->  your lights
 ```
 
-1. The script checks MultiViewer's local API for the track status twice a second.
-2. When the status changes, the script sends it to SignalRGB.
-3. The "Multiviewer Flags" effect picks it up and changes colour.
+1. The script checks MultiViewer's local API twice a second for the track status and for one driver's sector times.
+2. When either changes, the script sends it to SignalRGB.
+3. The "Multiviewer Flags" effect picks it up and updates the colours.
 
 ## Requirements
 
@@ -55,11 +58,11 @@ MultiViewer  ->  multiviewer.py  ->  SignalRGB effect  ->  your lights
 1. Download this repository: click **Code > Download ZIP** on GitHub and extract it, or clone it:
 
    ```bash
-   git clone https://github.com/mrbiscuit921/f1-flags-rgb.git
-   cd f1-flags-rgb
+   git clone https://github.com/mrbiscuit921/Multiviewer-Flags.git
+   cd Multiviewer-Flags
    ```
 
-2. Copy the `Multiviewer Flags` folder into your SignalRGB effects folder:
+2. Copy the `Multiviewer-Flags-main` folder into your SignalRGB effects folder:
 
    ```
    C:\Users\YourName\Documents\WhirlwindFX\Effects
@@ -97,15 +100,37 @@ Change these in SignalRGB under the effect's settings.
 | --- | --- | --- |
 | Flashing Enabled | Flash yellow/black for safety car and VSC instead of a solid colour | Off |
 | Safety Car Colour | Solid colour used for safety car and VSC when flashing is off | Orange (`#ffa500`) |
-| Flashing Speed | How fast the safety car and VSC flash (1 to 10) | 3 |
+| Flashing Speed | How fast the safety car and VSC flash (1 to 10) | 1 |
 | Default Colour | Colour shown when there is no flag data | Black (`#000000`) |
+
+## Sector display
+
+Three bars along the bottom of the canvas show the three sector times for one driver:
+
+| Colour | Meaning |
+| --- | --- |
+| Purple | Overall fastest sector in the session |
+| Green | The driver's personal best |
+| Yellow | No Improvement |
+
+SignalRGB maps your devices onto a canvas, and the bars sit along the bottom edge of it, so only devices placed there will show them.
+
+**Choosing a driver**
+
+Open `multiviewer.py` and change `DRIVERNUMBER` near the top to the racing number of the driver you want to follow. Keep the quotes:
+
+```python
+DRIVERNUMBER = "12"
+```
+
+Restart the script after changing it.
 
 ## Troubleshooting
 
 **Lights stay on the default colour**
 
 - Check that **Multiviewer Flags** is the effect currently applied in SignalRGB.
-- Check that the script is running, and that MultiViewer is open with a session started (try opening Live Timing).
+- Check that the script is running, and that MultiViewer is open with a session started and Live Timing is open.
 - Run the test below to find out whether the problem is the effect or the script.
 
 **Test the effect without MultiViewer**
@@ -120,24 +145,18 @@ If your lights turn red, the effect works and the problem is the script or Multi
 
 Other events you can test: `allClear`, `yellowFlag`, `safetyCarDeployed`, `virtualSafetyCarDeployed`.
 
-**`pip` or `python` is not recognised**
+To test the sector bars, send `sector_` followed by the three sector colours (`Fastest`, `Personal` or `None`), separated by underscores:
 
-Reinstall Python and tick **Add python.exe to PATH**, or use `py` instead of `python` (for example `py multiviewer.py`).
-
-**MultiViewer uses a different port**
-
-The script expects MultiViewer's local API on port `10101`. If yours differs, edit `STATUS_URL` near the top of `multiviewer.py`.
-
-## Project files
-
+```bash
+curl.exe -X POST "http://localhost:16034/canvas/event?sender=F1_Multiviewer&event=sector_Fastest_Personal_None"
 ```
-f1-flags-rgb/
-├── Multiviewer Flags.html   # SignalRGB effect
-├── multiviewer.py           # Bridge between MultiViewer and SignalRGB
-├── requirements.txt         # Python dependencies
-├── LICENSE
-└── README.md
-```
+
+**Sector bars don't appear**
+
+- Check that the devices you want to light are placed along the bottom of the canvas in SignalRGB.
+- Check `DRIVERNUMBER` in `multiviewer.py`. If the script prints `Sectors failed: ...`, that number probably isn't in the current session.
+- Run the sector test above to check whether the effect or the script is at fault.
+
 
 ## Disclaimer
 
